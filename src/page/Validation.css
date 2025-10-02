@@ -1,27 +1,105 @@
-.nav-container {
-    display: flex;
-    justify-content: center;
-    padding: 20px 0;
-
+.validation-container {
+    min-height: 100vh;
+    padding: 20px;
 }
 
-.nav-list {
+.header {
     display: flex;
-    list-style: none;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 0 10px;
+}
+
+.header h1 {
+    font-size: 2.5rem;
+    font-weight: bold;
     margin: 0;
-    padding: 0;
-    gap: 30px;
 }
 
-.nav-link {
+.btn-container {
+    display: flex;
+    gap: 12px;
+}
+
+.btn {
     padding: 10px 20px;
-    text-decoration: none;
-    color: #333;
-    border: 2px solid transparent;
-    border-radius: 5px;
-    transition: border-color 0.3s ease;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem
+
 }
 
-.nav-link:hover {
-    border-color: #007bff;
+.btn-primary {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background-color: #10b981;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #059669;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: #6b7280;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #4b5563;
+    transform: translateY(-2px);
+}
+
+.editors-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    height: 70vh;
+}
+
+@media (min-width: 1200px) {
+    .editors-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.editor-panel {
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+
+.panel-header {
+    background: #4a5568;
+    color: white;
+    padding: 3px 2px;
+    margin: 0;
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.editor-wrapper {
+    flex: 1;
+    min-height: 300px;
 }

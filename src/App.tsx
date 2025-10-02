@@ -1,27 +1,31 @@
-import { useState } from 'react'
+// @ts-ignore
 import viteLogo from '/vite.svg'
+// @ts-ignore
 import reactLogo from './assets/react.svg'
 import './App.css'
 import { Routes, Route,Link } from 'react-router-dom';
 import Validation from "./page/Validation.tsx";
 
 function App() {
-    const [count, setCount] = useState(0)
-
     return (
 
         <Routes>
             <Route path="/" element={
-                <div>
-                    <nav className="nav-container">
-                        <ul className="nav-list">
 
+
+                <div>
+                    <nav className={'nav-container'}>
+                        <ul className={'nav-list'}>
                             <li>
                                 <Link to="/validation" className="nav-link">
                                     Validator
                                 </Link>
                             </li>
                         </ul>
+                        <div className="Title">
+                            <h1>Validator</h1>
+                        </div>
+
                     </nav>
 
                     <div className={'Tittle'}>
