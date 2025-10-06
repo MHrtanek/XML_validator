@@ -127,12 +127,30 @@
     font-weight: 600;
 }
 
-.validation-container {
-    min-height: 100vh;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    background-color: #2F4858;
+.validation-result {
+    margin: 0;
+    overflow: hidden;
+    background: #1a1a1a;
+    border-left: 4px solid #6b7280;
+}
+
+.validation-result {
+    margin: 10px 20px;
+    overflow: hidden;
+    background: #1a1a1a;
+    border-left: 4px solid #6b7280;
+}
+
+.validation-result.success {
+    border-left-color: #10b981;
+}
+
+.validation-result.error {
+    border-left-color: #ef4444;
+}
+
+.validation-result.warning {
+    border-left-color: #f59e0b;
 }
 
 
