@@ -152,7 +152,9 @@
 .validation-result.warning {
     border-left-color: #f59e0b;
 }
-
+.error-glyph-margin {
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="5" fill="red"/></svg>') no-repeat center center;
+}
 
 
 

@@ -9,6 +9,12 @@ interface ValidationState {
     validationResult: string;
 }
 
+interface ValidationError {
+    message: string;
+    line?: number;
+    column?: number;
+}
+
 const useValidation = () => {
     const [state, setState] = useState<ValidationState>({
         xsd: '',
@@ -61,8 +67,31 @@ const useValidation = () => {
         URL.revokeObjectURL(url);
     }, [state.xml, state.xsd]);
 
-    const validateValue = useCallback((value: any, type: string, path: string): string[] => {
-        const errors: string[] = [];
+    const findLineNumber = useCallback((xmlContent: string, elementPath: string): number => {
+        if (!xmlContent) return -1;
+
+        const pathParts = elementPath.split(/[.@]/).filter(part => part.length > 0);
+        if (pathParts.length === 0) return -1;
+
+        const lines = xmlContent.split('\n');
+        let currentElement = '';
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+
+            const targetElement = pathParts[pathParts.length - 1];
+            const elementRegex = new RegExp(`<${targetElement}[\\s>]`);
+
+            if (elementRegex.test(line)) {
+                return i + 1;
+            }
+        }
+
+        return -1;
+    }, []);
+
+    const validateValue = useCallback((value: any, type: string, path: string, xmlContent: string): ValidationError[] => {
+        const errors: ValidationError[] = [];
         const numValue = Number(value);
 
         const validators = {
@@ -78,13 +107,17 @@ const useValidation = () => {
         };
 
         if (validators[type as keyof typeof validators]?.()) {
-            errors.push(`Element '${path}' should be ${type.replace('xs:', '')}, but got: '${value}'`);
+            const lineNumber = findLineNumber(xmlContent, path);
+            errors.push({
+                message: `Element '${path}' should be ${type.replace('xs:', '')}, but got: '${value}'`,
+                line: lineNumber > 0 ? lineNumber : undefined
+            });
         }
 
         return errors;
-    }, []);
+    }, [findLineNumber]);
 
-    const validateElement = useCallback((xmlElem: any, xsdElem: any, errors: string[], path: string) => {
+    const validateElement = useCallback((xmlElem: any, xsdElem: any, errors: ValidationError[], path: string, xmlContent: string) => {
         if (xsdElem['xs:complexType']?.['xs:sequence']) {
             const elements = [].concat(xsdElem['xs:complexType']['xs:sequence']['xs:element']);
 
@@ -94,11 +127,15 @@ const useValidation = () => {
                 const currentPath = `${path}.${elemName}`;
 
                 if (xmlElem[elemName] === undefined) {
-                    errors.push(`Missing required element: '${currentPath}'`);
+                    const lineNumber = findLineNumber(xmlContent, path);
+                    errors.push({
+                        message: `Missing required element: '${currentPath}'`,
+                        line: lineNumber > 0 ? lineNumber : undefined
+                    });
                 } else if (elemDef['xs:complexType']) {
-                    validateElement(xmlElem[elemName], elemDef, errors, currentPath);
+                    validateElement(xmlElem[elemName], elemDef, errors, currentPath, xmlContent);
                 } else {
-                    errors.push(...validateValue(xmlElem[elemName], elemType, currentPath));
+                    errors.push(...validateValue(xmlElem[elemName], elemType, currentPath, xmlContent));
                 }
             });
         }
@@ -113,32 +150,44 @@ const useValidation = () => {
                 const currentPath = `${path}@${attrName}`;
 
                 if (!xmlElem['@_']?.[attrName]) {
-                    if (isRequired) errors.push(`Missing required attribute: '${currentPath}'`);
+                    if (isRequired) {
+                        const lineNumber = findLineNumber(xmlContent, path);
+                        errors.push({
+                            message: `Missing required attribute: '${currentPath}'`,
+                            line: lineNumber > 0 ? lineNumber : undefined
+                        });
+                    }
                 } else {
-                    errors.push(...validateValue(xmlElem['@_'][attrName], attrType, currentPath));
+                    errors.push(...validateValue(xmlElem['@_'][attrName], attrType, currentPath, xmlContent));
                 }
             });
         }
-    }, [validateValue]);
+    }, [validateValue, findLineNumber]);
 
-    const validateXmlAgainstXsd = useCallback((xmlObj: any, xsdObj: any): string[] => {
-        const errors: string[] = [];
+    const validateXmlAgainstXsd = useCallback((xmlObj: any, xsdObj: any, xmlContent: string): ValidationError[] => {
+        const errors: ValidationError[] = [];
         const rootElement = xsdObj['xs:schema']?.['xs:element'];
 
         if (!rootElement) {
-            errors.push('Invalid XSD structure: missing schema or root element');
+            errors.push({
+                message: 'Invalid XSD structure: missing schema or root element'
+            });
             return errors;
         }
 
         const rootName = rootElement['@_name'];
         if (!xmlObj[rootName]) {
-            errors.push(`Missing root element: '${rootName}'`);
+            const lineNumber = findLineNumber(xmlContent, rootName);
+            errors.push({
+                message: `Missing root element: '${rootName}'`,
+                line: lineNumber > 0 ? lineNumber : undefined
+            });
             return errors;
         }
 
-        validateElement(xmlObj[rootName], rootElement, errors, rootName);
+        validateElement(xmlObj[rootName], rootElement, errors, rootName, xmlContent);
         return errors;
-    }, [validateElement]);
+    }, [validateElement, findLineNumber]);
 
     const handleValidate = useCallback(() => {
         try {
@@ -153,12 +202,14 @@ const useValidation = () => {
             const xmlValidation = XMLValidator.validate(state.xml);
 
             if (xsdValidation !== true) {
-                updateState({ validationResult: `XSD Schema Error:\n${xsdValidation?.err?.msg || 'Invalid XSD syntax'}` });
+                const lineInfo = xsdValidation?.err?.line ? `Line ${xsdValidation.err.line}: ` : '';
+                updateState({ validationResult: `XSD Schema Error:\n${lineInfo}${xsdValidation?.err?.msg || 'Invalid XSD syntax'}` });
                 return;
             }
 
             if (xmlValidation !== true) {
-                updateState({ validationResult: `XML Document Error:\nLine ${xmlValidation?.err?.line}: ${xmlValidation?.err?.msg || 'Invalid XML syntax'}` });
+                const lineInfo = xmlValidation?.err?.line ? `Line ${xmlValidation.err.line}: ` : '';
+                updateState({ validationResult: `XML Document Error:\n${lineInfo}${xmlValidation?.err?.msg || 'Invalid XML syntax'}` });
                 return;
             }
 
@@ -170,12 +221,18 @@ const useValidation = () => {
 
             const xsdObj = parser.parse(state.xsd);
             const xmlObj = parser.parse(state.xml);
-            const validationErrors = validateXmlAgainstXsd(xmlObj, xsdObj);
+            const validationErrors = validateXmlAgainstXsd(xmlObj, xsdObj, state.xml);
 
             if (validationErrors.length === 0) {
                 updateState({ validationResult: 'VALIDATION SUCCESSFUL\n══════════════════\n- XSD syntax: Valid\n- XML syntax: Valid\n- XSD validation: Valid' });
             } else {
-                updateState({ validationResult: `VALIDATION FAILED\n══════════════════\n- XSD syntax: Valid\n- XML syntax: Valid\n- Validation errors:\n${validationErrors.map(err => `• ${err}`).join('\n')}` });
+                const errorDetails = validationErrors.map(err =>
+                    err.line ? `• Line ${err.line}: ${err.message}` : `• ${err.message}`
+                ).join('\n');
+
+                updateState({
+                    validationResult: `VALIDATION FAILED\n══════════════════\n- XSD syntax: Valid\n- XML syntax: Valid\n- Validation errors:\n${errorDetails}`
+                });
             }
 
         } catch (error: any) {
@@ -257,7 +314,13 @@ const Validation: React.FC = () => {
                         defaultLanguage="text"
                         value={state.validationResult}
                         theme="vs-dark"
-                        options={{ readOnly: true, lineNumbers: 'off', minimap: { enabled: false }, scrollBeyondLastLine: false }}
+                        options={{
+                            readOnly: true,
+                            lineNumbers: 'off',
+                            minimap: { enabled: false },
+                            scrollBeyondLastLine: false,
+                            wordWrap: 'on'
+                        }}
                     />
                 </div>
             )}
