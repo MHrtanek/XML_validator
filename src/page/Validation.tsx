@@ -17,6 +17,11 @@ const Validation: React.FC = () => {
         error
     } = useValidation();
 
+    // Konvertovanie validačných chýb na string pre zobrazenie
+    const validationResultText = state.validationResult
+        .map(error => error.line ? `• Line ${error.line}: ${error.message}` : `• ${error.message}`)
+        .join('\n');
+
     return (
         <div className="validation-container">
             <div className="header">
@@ -34,12 +39,12 @@ const Validation: React.FC = () => {
                 </div>
             )}
 
-            {state.validationResult && (
+            {state.validationResult.length > 0 && (
                 <div className="validation-result">
                     <Editor
                         height="100px"
                         defaultLanguage="text"
-                        value={state.validationResult}
+                        value={validationResultText}
                         theme="vs-dark"
                         options={readOnlyEditorOptions}
                     />
