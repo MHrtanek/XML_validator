@@ -1,54 +1,35 @@
-// @ts-ignore
-import viteLogo from '/vite.svg'
-// @ts-ignore
-import reactLogo from './assets/react.svg'
-import './App.css'
-import { Routes, Route,Link } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import Validation from "./page/Validation.tsx";
+import ErrorBoundary from './components/ErrorBoundary';
+import './App.css';
 
 function App() {
     return (
-
-        <Routes>
-            <Route path="/" element={
-
-
-                <div>
-                    <nav className={'nav-container'}>
-                        <ul className={'nav-list'}>
-                            <li>
-                                <Link to="/validation" className="nav-link">
-                                    Validator
-                                </Link>
-                            </li>
-                        </ul>
-                        <div className="Title">
-                            <h1>Validator</h1>
-                        </div>
-
-                    </nav>
-
-                    <div className={'Tittle'}>
-                        <h1>This website is powered by:</h1>
-                    </div>
+        <ErrorBoundary>
+            <Routes>
+                <Route path="/" element={
                     <div>
-                        <a href="https://vite.dev" target="_blank">
-                            <img src={viteLogo} className="logo" alt="Vite logo" />
-                        </a>
-                        <a href="https://react.dev" target="_blank">
-                            <img src={reactLogo} className="logo react" alt="React logo" />
-                        </a>
+                        <nav className={'nav-container'}>
+                            <ul className={'nav-list'}>
+                                <li>
+                                    <Link to="/validation" className="nav-link">
+                                        Validator
+                                    </Link>
+                                </li>
+                            </ul>
+                            <div className="Title">
+                                <h1>Validator</h1>
+                            </div>
+                        </nav>
+                        <div className={'Tittle'}>
+                            <h1>This website is powered by:</h1>
+                        </div>
                     </div>
-                    <h1>Vite + React</h1>
-
-
-                </div>
-            } />
-
-            <Route path="/validation" element={<Validation />} />
-        </Routes>
-
-    )
+                } />
+                <Route path="/validation" element={<Validation />} />
+            </Routes>
+        </ErrorBoundary>
+    );
 }
 
-export default App
+export default App;
