@@ -11,7 +11,7 @@ interface Props {
     readOnly?: boolean;
     height?: string | number;
     theme?: string;
-    onErrorGlyphClick?: (error: ValidationError) => void;
+    onErrorGlyphClick?: (error: ValidationError, event: MouseEvent) => void;
 }
 
 export interface MonacoEditorRef {
@@ -57,18 +57,21 @@ const MonacoEditorWithValidation = forwardRef<MonacoEditorRef, Props>(({
         
         // Pridáme click handler pre error glyph - používame ref aby sme mali vždy aktuálne errors
         editor.onMouseDown((e: any) => {
-            console.log('Mouse down event:', e.target.type, monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN);
-            
             if (e.target.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
-                console.log('Clicked on glyph margin!');
                 const lineNumber = e.target.position?.lineNumber;
                 if (lineNumber) {
                     const currentErrors = errorsRef.current;
-                    console.log('Current errors:', currentErrors);
                     const error = currentErrors.find(err => err.line === lineNumber);
-                    console.log('Found error for line', lineNumber, ':', error);
                     if (error && onErrorGlyphClickRef.current) {
-                        onErrorGlyphClickRef.current(error);
+                        // Získame browser event z Monaco eventu
+                        const mouseEvent = e.event?.browserEvent || new MouseEvent('click', {
+                            clientX: e.event?.posx || 100,
+                            clientY: e.event?.posy || 100,
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        
+                        onErrorGlyphClickRef.current(error, mouseEvent);
                     }
                 }
             }

@@ -4,13 +4,19 @@ import { useValidation } from '../hooks/useValidation';
 import { editorOptions } from '../config/editorConfig';
 import MonacoEditorWithValidation, { MonacoEditorRef } from "../components/MonacoEditorWithValidation";
 import ValidationResults from "../components/ValidationResults";
-import { useRef } from 'react';
+import ErrorContextMenu from "../components/ErrorContextMenu";
+import { useRef, useState } from 'react';
 import { extractElementName, findElementInXsd } from '../utils/xsdNavigation';
+import { commentOutElement } from '../utils/xmlCommentUtils';
 import { ValidationError } from '../types/validation';
 
 const Validation: React.FC = () => {
     const xmlEditorRef = useRef<MonacoEditorRef>(null);
     const xsdEditorRef = useRef<any>(null);
+    const [contextMenu, setContextMenu] = useState<{
+        error: ValidationError;
+        position: { x: number; y: number };
+    } | null>(null);
     
     const {
         state,
@@ -38,22 +44,29 @@ const Validation: React.FC = () => {
         xsdEditorRef.current = editor;
     };
 
-    const handleErrorGlyphClick = (error: ValidationError) => {
-        if (!error.message || !state.xsd) return;
+    const handleErrorGlyphClick = (error: ValidationError, event: MouseEvent) => {
+        setContextMenu({
+            error,
+            position: {
+                x: event.clientX,
+                y: event.clientY
+            }
+        });
+    };
+
+    const handleNavigateToXsd = () => {
+        if (!contextMenu || !contextMenu.error.message || !state.xsd) return;
         
-        // Extrahujeme názov elementu z chybovej správy
-        const elementName = extractElementName(error.message);
+        const elementName = extractElementName(contextMenu.error.message);
         if (!elementName) {
-            console.log('Could not extract element name from error:', error.message);
+            console.log('Could not extract element name from error:', contextMenu.error.message);
             return;
         }
         
         console.log('Looking for element:', elementName, 'in XSD');
         
-        // Nájdeme element v XSD schéme
         const lineNumber = findElementInXsd(state.xsd, elementName);
         if (lineNumber && xsdEditorRef.current) {
-            // Navigujeme na riadok v XSD editore
             xsdEditorRef.current.revealLineInCenter(lineNumber);
             xsdEditorRef.current.setPosition({ lineNumber, column: 1 });
             xsdEditorRef.current.focus();
@@ -63,8 +76,30 @@ const Validation: React.FC = () => {
         }
     };
 
+    const handleCommentElement = () => {
+        if (!contextMenu || !contextMenu.error.line) return;
+        
+        const commented = commentOutElement(state.xml, contextMenu.error.line);
+        if (commented) {
+            handleEditorChange(commented);
+            console.log('Element commented out on line', contextMenu.error.line);
+        } else {
+            console.log('Could not comment out element on line', contextMenu.error.line);
+        }
+    };
+
     return (
         <div className="validation-container">
+            {contextMenu && (
+                <ErrorContextMenu
+                    error={contextMenu.error}
+                    position={contextMenu.position}
+                    onClose={() => setContextMenu(null)}
+                    onNavigateToXsd={handleNavigateToXsd}
+                    onCommentElement={handleCommentElement}
+                />
+            )}
+            
             {/* Header zostáva rovnaký */}
             <div className="header">
                 <h1>XML/XSD Validator</h1>

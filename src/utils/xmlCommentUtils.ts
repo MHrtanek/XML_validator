@@ -1,0 +1,115 @@
+/**
+ * Nájde začiatok a koniec XML elementu na danom riadku
+ */
+export function findElementBounds(xmlContent: string, lineNumber: number): { start: number; end: number } | null {
+    const lines = xmlContent.split('\n');
+    if (lineNumber < 1 || lineNumber > lines.length) {
+        return null;
+    }
+    
+    const lineIndex = lineNumber - 1;
+    const line = lines[lineIndex];
+    
+    // Nájdeme pozíciu začiatku tohto riadku v celom texte
+    let lineStartPos = 0;
+    for (let i = 0; i < lineIndex; i++) {
+        lineStartPos += lines[i].length + 1; // +1 for newline
+    }
+    
+    // Skúsime nájsť opening tag na tomto riadku
+    const openTagMatch = line.match(/<(\w+[\w:.-]*)/);
+    if (!openTagMatch) {
+        return null;
+    }
+    
+    const tagName = openTagMatch[1];
+    const tagStartInLine = line.indexOf('<' + tagName);
+    const elementStart = lineStartPos + tagStartInLine;
+    
+    // Skontrolujeme či je to self-closing tag
+    if (line.includes('/>')) {
+        const selfClosingEnd = line.indexOf('/>');
+        const elementEnd = lineStartPos + selfClosingEnd + 2;
+        return { start: elementStart, end: elementEnd };
+    }
+    
+    // Ak nie, hľadáme closing tag
+    const closingTag = `</${tagName}>`;
+    const xmlFromElement = xmlContent.substring(elementStart);
+    
+    // Jednoduchý search pre closing tag (môže byť na viacerých riadkoch)
+    const closingTagPos = xmlFromElement.indexOf(closingTag);
+    if (closingTagPos === -1) {
+        // Ak nenájdeme closing tag, skúsime najsť koniec aktuálneho riadku s >
+        const lineEnd = line.lastIndexOf('>');
+        if (lineEnd !== -1) {
+            return { start: elementStart, end: lineStartPos + lineEnd + 1 };
+        }
+        return null;
+    }
+    
+    const elementEnd = elementStart + closingTagPos + closingTag.length;
+    return { start: elementStart, end: elementEnd };
+}
+
+/**
+ * Zakomentuje element na danom riadku
+ */
+export function commentOutElement(xmlContent: string, lineNumber: number): string | null {
+    const bounds = findElementBounds(xmlContent, lineNumber);
+    if (!bounds) {
+        console.log('Could not find element bounds');
+        return null;
+    }
+    
+    const beforeElement = xmlContent.substring(0, bounds.start);
+    const element = xmlContent.substring(bounds.start, bounds.end);
+    const afterElement = xmlContent.substring(bounds.end);
+    
+    // Zakomentujeme element
+    const commented = `<!-- ${element} -->`;
+    
+    return beforeElement + commented + afterElement;
+}
+
+/**
+ * Odkomentuje element na danom riadku
+ */
+export function uncommentElement(xmlContent: string, lineNumber: number): string | null {
+    const lines = xmlContent.split('\n');
+    if (lineNumber < 1 || lineNumber > lines.length) {
+        return null;
+    }
+    
+    const lineIndex = lineNumber - 1;
+    
+    // Nájdeme pozíciu začiatku tohto riadku v celom texte
+    let lineStartPos = 0;
+    for (let i = 0; i < lineIndex; i++) {
+        lineStartPos += lines[i].length + 1;
+    }
+    
+    // Hľadáme komentár obsahujúci tento riadok
+    const beforeLine = xmlContent.substring(0, lineStartPos);
+    const commentStartPos = beforeLine.lastIndexOf('<!--');
+    
+    if (commentStartPos === -1) {
+        return null;
+    }
+    
+    const afterCommentStart = xmlContent.substring(commentStartPos);
+    const commentEndMatch = afterCommentStart.match(/-->/);
+    
+    if (!commentEndMatch || !commentEndMatch.index) {
+        return null;
+    }
+    
+    const commentEndPos = commentStartPos + commentEndMatch.index + 3;
+    
+    const beforeComment = xmlContent.substring(0, commentStartPos);
+    const commentContent = xmlContent.substring(commentStartPos + 4, commentEndPos - 3); // Remove <!-- and -->
+    const afterComment = xmlContent.substring(commentEndPos);
+    
+    return beforeComment + commentContent.trim() + afterComment;
+}
+
