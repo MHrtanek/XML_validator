@@ -10,7 +10,8 @@ export const VALIDATION_MESSAGES = {
     MISSING_ATTRIBUTE: (path: string) => `Missing required attribute: '${path}'`,
     TYPE_MISMATCH: (path: string, expected: string, actual: string) =>
         `Element '${path}' should be ${expected}, but got: '${actual}'`,
-    VALIDATION_FAILED: 'VALIDATION FAILED\n══════════════════\n- XSD syntax: Valid\n- XML syntax: Valid\n- Validation errors:'
+    VALIDATION_FAILED: 'VALIDATION FAILED\n══════════════════\n- XSD syntax: Valid\n- XML syntax: Valid\n- Validation errors:\n',
+    SYNTAX_ERROR: 'XML Syntax Error:'
 } as const;
 
 export const VALIDATION_TYPES = {

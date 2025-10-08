@@ -52,10 +52,6 @@ export const useValidation = () => {
         updateState({ xml: value || '' });
     }, [updateState]);
 
-    const handleEditorDidMount = useCallback((editor: any) => {
-        editorRef.current = editor;
-    }, []);
-
     return {
         state,
         fileInputRefs,
@@ -65,7 +61,6 @@ export const useValidation = () => {
         handleValidate,
         handleClear,
         handleEditorChange,
-        handleEditorDidMount,
         error
     };
 };

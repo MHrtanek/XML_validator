@@ -21,6 +21,8 @@ export const useValidationLogic = (xsd: string, xml: string, updateValidationRes
                 throw new Error(ERROR_MESSAGES.FILE_TOO_LARGE);
             }
 
+            const allErrors: ValidationError[] = [];
+
             const xsdValidation = XMLValidator.validate(xsd);
             if (xsdValidation !== true) {
                 const lineInfo = xsdValidation?.err?.line ? `Line ${xsdValidation.err.line}: ` : '';
@@ -28,25 +30,34 @@ export const useValidationLogic = (xsd: string, xml: string, updateValidationRes
             }
 
             const xmlValidation = XMLValidator.validate(xml);
-            if (xmlValidation !== true) {
-                const lineInfo = xmlValidation?.err?.line ? `Line ${xmlValidation.err.line}: ` : '';
-                throw new Error(`${VALIDATION_MESSAGES.INVALID_XML_SYNTAX}\n${lineInfo}${xmlValidation?.err?.msg}`);
+            if (xmlValidation !== true && xmlValidation.err) {
+                allErrors.push({
+                    message: `XML Syntax Error: ${xmlValidation.err.msg}`,
+                    line: xmlValidation.err.line,
+                    column: xmlValidation.err.col
+                });
             }
 
-            const parser = new XMLParser({
-                ignoreAttributes: false,
-                parseTagValue: true,
-                parseAttributeValue: true
-            });
+            if (xmlValidation === true) {
+                const parser = new XMLParser({
+                    ignoreAttributes: false,
+                    parseTagValue: true,
+                    parseAttributeValue: true
+                });
 
-            const xsdObj = parser.parse(xsd);
-            const xmlObj = parser.parse(xml);
-            const validationErrors = validateXmlAgainstXsd(xmlObj, xsdObj, xml);
+                try {
+                    const xsdObj = parser.parse(xsd);
+                    const xmlObj = parser.parse(xml);
+                    const validationErrors = validateXmlAgainstXsd(xmlObj, xsdObj, xml);
+                    allErrors.push(...validationErrors);
+                } catch (parseError) {
+                }
+            }
 
-            if (validationErrors.length === 0) {
+            if (allErrors.length === 0) {
                 updateValidationResult([{ message: VALIDATION_MESSAGES.SUCCESS }]);
             } else {
-                updateValidationResult(validationErrors);
+                updateValidationResult(allErrors);
             }
 
         } catch (error: any) {
