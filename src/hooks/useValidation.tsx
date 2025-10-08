@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { ValidationState, FileType, ValidationError } from '../types/validation';
 import { useFileOperations } from './useFileOperations';
 import { useValidationLogic } from './useValidationLogic';
 import { DEFAULT_FILE_NAMES } from '../config/editorConfig';
+import { formatXml } from '../utils/formatXml';
+import { SAMPLE_XML, SAMPLE_XSD } from '../constants/samples';
+import { getQuickFixForMessage } from '../utils/quickFixUtils';
 
 export const useValidation = () => {
     const [state, setState] = useState<ValidationState>({
@@ -10,8 +13,6 @@ export const useValidation = () => {
         xml: '',
         validationResult: []
     });
-
-    const editorRef = useRef<any>(null);
 
     const updateState = useCallback((updates: Partial<ValidationState>) => {
         setState((prev: ValidationState) => ({ ...prev, ...updates }));
@@ -26,7 +27,6 @@ export const useValidation = () => {
                 updateState({ xsd: content });
             } else {
                 updateState({ xml: content });
-                editorRef.current?.setValue(content);
             }
         }, type);
     }, [handleFileChange, updateState]);
@@ -43,7 +43,6 @@ export const useValidation = () => {
 
     const handleClear = useCallback(() => {
         updateState({ xsd: '', xml: '', validationResult: [] });
-        editorRef.current?.setValue('');
         if (fileInputRefs.left.current) fileInputRefs.left.current.value = '';
         if (fileInputRefs.right.current) fileInputRefs.right.current.value = '';
     }, [updateState, fileInputRefs]);
@@ -51,6 +50,35 @@ export const useValidation = () => {
     const handleEditorChange = useCallback((value: string | undefined) => {
         updateState({ xml: value || '' });
     }, [updateState]);
+
+    const handleXsdChange = useCallback((value: string | undefined) => {
+        updateState({ xsd: value || '' });
+    }, [updateState]);
+
+    const handleFormatXml = useCallback(() => {
+        const formatted = formatXml(state.xml);
+        updateState({ xml: formatted });
+    }, [state.xml, updateState]);
+
+    const handleFormatXsd = useCallback(() => {
+        const formatted = formatXml(state.xsd);
+        updateState({ xsd: formatted });
+    }, [state.xsd, updateState]);
+
+    const loadSampleXml = useCallback(() => {
+        updateState({ xml: SAMPLE_XML });
+    }, [updateState]);
+
+    const loadSampleXsd = useCallback(() => {
+        updateState({ xsd: SAMPLE_XSD });
+    }, [updateState]);
+
+    const applyQuickFix = useCallback((message: string) => {
+        const fix = getQuickFixForMessage(message, state.xml);
+        if (!fix) return;
+        const updated = fix.apply(state.xml);
+        updateState({ xml: updated });
+    }, [state.xml, updateState]);
 
     return {
         state,
@@ -61,6 +89,12 @@ export const useValidation = () => {
         handleValidate,
         handleClear,
         handleEditorChange,
+        handleXsdChange,
+        handleFormatXml,
+        handleFormatXsd,
+        loadSampleXml,
+        loadSampleXsd,
+        applyQuickFix,
         error
     };
 };
