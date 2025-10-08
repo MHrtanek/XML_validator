@@ -1,10 +1,17 @@
 import './Validation.css';
 import { Editor } from '@monaco-editor/react';
 import { useValidation } from '../hooks/useValidation';
-import { editorOptions, readOnlyEditorOptions } from '../config/editorConfig';
-import MonacoEditorWithValidation from "../components/MonacoEditorWithValidation";
+import { editorOptions } from '../config/editorConfig';
+import MonacoEditorWithValidation, { MonacoEditorRef } from "../components/MonacoEditorWithValidation";
+import ValidationResults from "../components/ValidationResults";
+import { useRef } from 'react';
+import { extractElementName, findElementInXsd } from '../utils/xsdNavigation';
+import { ValidationError } from '../types/validation';
 
 const Validation: React.FC = () => {
+    const xmlEditorRef = useRef<MonacoEditorRef>(null);
+    const xsdEditorRef = useRef<any>(null);
+    
     const {
         state,
         fileInputRefs,
@@ -23,9 +30,38 @@ const Validation: React.FC = () => {
     } = useValidation();
 
 
-    const validationResultText = state.validationResult
-        .map(error => error.line ? `• Line ${error.line}: ${error.message}` : `• ${error.message}`)
-        .join('\n');
+    const handleLineClick = (lineNumber: number) => {
+        xmlEditorRef.current?.goToLine(lineNumber);
+    };
+
+    const handleXsdEditorMount = (editor: any) => {
+        xsdEditorRef.current = editor;
+    };
+
+    const handleErrorGlyphClick = (error: ValidationError) => {
+        if (!error.message || !state.xsd) return;
+        
+        // Extrahujeme názov elementu z chybovej správy
+        const elementName = extractElementName(error.message);
+        if (!elementName) {
+            console.log('Could not extract element name from error:', error.message);
+            return;
+        }
+        
+        console.log('Looking for element:', elementName, 'in XSD');
+        
+        // Nájdeme element v XSD schéme
+        const lineNumber = findElementInXsd(state.xsd, elementName);
+        if (lineNumber && xsdEditorRef.current) {
+            // Navigujeme na riadok v XSD editore
+            xsdEditorRef.current.revealLineInCenter(lineNumber);
+            xsdEditorRef.current.setPosition({ lineNumber, column: 1 });
+            xsdEditorRef.current.focus();
+            console.log('Navigated to line', lineNumber, 'in XSD');
+        } else {
+            console.log('Element not found in XSD:', elementName);
+        }
+    };
 
     return (
         <div className="validation-container">
@@ -47,27 +83,10 @@ const Validation: React.FC = () => {
 
             {state.validationResult.length > 0 && (
                 <div className="validation-result" role="region" aria-label="Validation results">
-                    <Editor
-                        height="100px"
-                        defaultLanguage="text"
-                        value={validationResultText}
-                        theme="vs-dark"
-                        options={readOnlyEditorOptions}
+                    <ValidationResults 
+                        errors={state.validationResult}
+                        onLineClick={handleLineClick}
                     />
-                    <div className="quickfix-list" aria-live="polite">
-                        {state.validationResult.map((err, idx) => (
-                            <div key={idx} className="quickfix-item">
-                                <span>{err.line ? `Line ${err.line}: ` : ''}{err.message}</span>
-                                <button
-                                    className="panel-btn panel-btn-secondary"
-                                    onClick={() => applyQuickFix(err.message)}
-                                    aria-label="Apply quick fix"
-                                >
-                                    Quick Fix
-                                </button>
-                            </div>
-                        ))}
-                    </div>
                 </div>
             )}
 
@@ -91,6 +110,7 @@ const Validation: React.FC = () => {
                             theme="vs-dark"
                             options={{ ...editorOptions, readOnly: false }}
                             aria-label="XSD editor"
+                            onMount={handleXsdEditorMount}
                         />
                     </div>
                 </div>
@@ -107,6 +127,7 @@ const Validation: React.FC = () => {
                     </div>
                     <div className="editor-wrapper">
                         <MonacoEditorWithValidation
+                            ref={xmlEditorRef}
                             value={state.xml}
                             onChange={handleEditorChange}
                             language="xml"
@@ -114,6 +135,7 @@ const Validation: React.FC = () => {
                             errors={state.validationResult.filter(err => err.line)}
                             readOnly={false}
                             theme="vs-dark"
+                            onErrorGlyphClick={handleErrorGlyphClick}
                         />
                     </div>
                 </div>

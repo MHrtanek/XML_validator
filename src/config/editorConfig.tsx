@@ -15,7 +15,13 @@ export const readOnlyEditorOptions = {
     lineNumbers: 'off' as const,
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
-    wordWrap: 'on' as const
+    wordWrap: 'on' as const,
+    selectionHighlight: true,
+    occurrencesHighlight: 'off' as const,
+    renderLineHighlight: 'none' as const,
+    contextmenu: true,
+    quickSuggestions: false,
+    links: false
 };
 
 export const DEFAULT_FILE_NAMES = {

@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
-import { XMLValidator, XMLParser } from 'fast-xml-parser';
+import { XMLValidator } from 'fast-xml-parser';
 import { VALIDATION_MESSAGES } from '../constants/validationMessages';
-import { validateXmlAgainstXsd } from '../utils/xmlValidation';
 import { ERROR_MESSAGES } from '../constants/errorMessages';
 import { ValidationError } from '../types/validation';
+import { XmlDocument, XsdValidator } from 'libxml2-wasm';
 
 export const useValidationLogic = (xsd: string, xml: string, updateValidationResult: (result: ValidationError[]) => void) => {
     const [error, setError] = useState<string | null>(null);
@@ -39,18 +39,18 @@ export const useValidationLogic = (xsd: string, xml: string, updateValidationRes
             }
 
             if (xmlValidation === true) {
-                const parser = new XMLParser({
-                    ignoreAttributes: false,
-                    parseTagValue: true,
-                    parseAttributeValue: true
-                });
-
+                const xsdDoc = XmlDocument.fromString(xsd);
+                const xmlDoc = XmlDocument.fromString(xml);
+                const validator = XsdValidator.fromDoc(xsdDoc);
+                
                 try {
-                    const xsdObj = parser.parse(xsd);
-                    const xmlObj = parser.parse(xml);
-                    const validationErrors = validateXmlAgainstXsd(xmlObj, xsdObj, xml);
-                    allErrors.push(...validationErrors);
-                } catch (parseError) {
+                    validator.validate(xmlDoc);
+                } catch (err: any) {
+                    allErrors.push(...err.details.map((detail: any) => ({
+                        message: detail.message,
+                        line: detail.line,
+                        column: detail.column
+                    })));
                 }
             }
 

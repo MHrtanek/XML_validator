@@ -1,0 +1,75 @@
+.validation-results-container {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 14px;
+    padding: 8px 0;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.validation-result-line {
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative;
+    gap: 8px;
+}
+
+.validation-result-line:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.validation-result-line:hover .copy-btn {
+    opacity: 1;
+}
+
+.result-text {
+    user-select: text;
+    white-space: pre;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.copy-btn {
+    opacity: 0;
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #d4d4d4;
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+
+.copy-btn:hover {
+    background: #2a2a2a;
+    border-color: #888;
+}
+
+.copy-btn:active {
+    transform: scale(0.95);
+}
+
+/* Scrollbar styling */
+.validation-results-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.validation-results-container::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.validation-results-container::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.validation-results-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+

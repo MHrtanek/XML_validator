@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, forwardRef, useImperativeHandle } from "react";
 import { ValidationError } from '../types/validation';
 import './MonacoEditorWithValidation.css';
 import { Editor } from '@monaco-editor/react';
@@ -11,23 +11,68 @@ interface Props {
     readOnly?: boolean;
     height?: string | number;
     theme?: string;
+    onErrorGlyphClick?: (error: ValidationError) => void;
 }
 
-export default function MonacoEditorWithValidation({
+export interface MonacoEditorRef {
+    goToLine: (line: number) => void;
+}
+
+const MonacoEditorWithValidation = forwardRef<MonacoEditorRef, Props>(({
                                                        value,
                                                        onChange,
                                                        language = "xml",
                                                        errors = [],
                                                        readOnly = false,
                                                        height = "100%",
-                                                       theme = "vs-dark"
-                                                   }: Props) {
+                                                       theme = "vs-dark",
+                                                       onErrorGlyphClick
+                                                   }, ref) => {
     const editorRef = useRef<any>(null);
     const decorationsRef = useRef<string[]>([]);
+    const monacoRef = useRef<any>(null);
+    const errorsRef = useRef<ValidationError[]>(errors);
+    const onErrorGlyphClickRef = useRef(onErrorGlyphClick);
+
+    // Aktualizuj refs pri zmene
+    useEffect(() => {
+        errorsRef.current = errors;
+        onErrorGlyphClickRef.current = onErrorGlyphClick;
+    }, [errors, onErrorGlyphClick]);
+
+    useImperativeHandle(ref, () => ({
+        goToLine: (line: number) => {
+            if (editorRef.current) {
+                editorRef.current.revealLineInCenter(line);
+                editorRef.current.setPosition({ lineNumber: line, column: 1 });
+                editorRef.current.focus();
+            }
+        }
+    }));
 
     const handleEditorDidMount = (editor: any, monaco: any) => {
         editorRef.current = editor;
+        monacoRef.current = monaco;
         updateDecorations(editor, monaco, errors);
+        
+        // Pridáme click handler pre error glyph - používame ref aby sme mali vždy aktuálne errors
+        editor.onMouseDown((e: any) => {
+            console.log('Mouse down event:', e.target.type, monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN);
+            
+            if (e.target.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
+                console.log('Clicked on glyph margin!');
+                const lineNumber = e.target.position?.lineNumber;
+                if (lineNumber) {
+                    const currentErrors = errorsRef.current;
+                    console.log('Current errors:', currentErrors);
+                    const error = currentErrors.find(err => err.line === lineNumber);
+                    console.log('Found error for line', lineNumber, ':', error);
+                    if (error && onErrorGlyphClickRef.current) {
+                        onErrorGlyphClickRef.current(error);
+                    }
+                }
+            }
+        });
     };
 
     const updateDecorations = (editor: any, monaco: any, errorList: ValidationError[]) => {
@@ -84,4 +129,8 @@ export default function MonacoEditorWithValidation({
             }}
         />
     );
-}
+});
+
+MonacoEditorWithValidation.displayName = 'MonacoEditorWithValidation';
+
+export default MonacoEditorWithValidation;
