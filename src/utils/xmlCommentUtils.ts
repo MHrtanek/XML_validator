@@ -73,6 +73,22 @@ export function commentOutElement(xmlContent: string, lineNumber: number): strin
 }
 
 /**
+ * Skontroluje či je element na danom riadku zakomentovaný
+ */
+export function isElementCommented(xmlContent: string, lineNumber: number): boolean {
+    const lines = xmlContent.split('\n');
+    if (lineNumber < 1 || lineNumber > lines.length) {
+        return false;
+    }
+    
+    const lineIndex = lineNumber - 1;
+    const line = lines[lineIndex].trim();
+    
+    // Jednoduché skontrolovanie či riadok obsahuje komentár
+    return line.includes('<!--') || line.startsWith('<!--');
+}
+
+/**
  * Odkomentuje element na danom riadku
  */
 export function uncommentElement(xmlContent: string, lineNumber: number): string | null {
@@ -86,29 +102,42 @@ export function uncommentElement(xmlContent: string, lineNumber: number): string
     // Nájdeme pozíciu začiatku tohto riadku v celom texte
     let lineStartPos = 0;
     for (let i = 0; i < lineIndex; i++) {
-        lineStartPos += lines[i].length + 1;
+        lineStartPos += lines[i].length + 1; // +1 for newline
     }
     
-    // Hľadáme komentár obsahujúci tento riadok
-    const beforeLine = xmlContent.substring(0, lineStartPos);
-    const commentStartPos = beforeLine.lastIndexOf('<!--');
+    const lineEndPos = lineStartPos + lines[lineIndex].length;
+    
+    // Hľadáme komentár ktorý obsahuje tento riadok
+    // Môže začínať pred týmto riadkom alebo na ňom
+    const beforeAndIncludingLine = xmlContent.substring(0, lineEndPos);
+    const commentStartPos = beforeAndIncludingLine.lastIndexOf('<!--');
     
     if (commentStartPos === -1) {
+        console.log('No comment start found');
         return null;
     }
     
+    // Hľadáme koniec komentára
     const afterCommentStart = xmlContent.substring(commentStartPos);
-    const commentEndMatch = afterCommentStart.match(/-->/);
+    const commentEndIndex = afterCommentStart.indexOf('-->');
     
-    if (!commentEndMatch || !commentEndMatch.index) {
+    if (commentEndIndex === -1) {
+        console.log('No comment end found');
         return null;
     }
     
-    const commentEndPos = commentStartPos + commentEndMatch.index + 3;
+    const commentEndPos = commentStartPos + commentEndIndex + 3; // +3 for '-->'
     
+    // Extrahujeme časti
     const beforeComment = xmlContent.substring(0, commentStartPos);
-    const commentContent = xmlContent.substring(commentStartPos + 4, commentEndPos - 3); // Remove <!-- and -->
+    const commentContent = xmlContent.substring(commentStartPos + 4, commentStartPos + commentEndIndex); // Remove '<!--' and '-->'
     const afterComment = xmlContent.substring(commentEndPos);
+    
+    console.log('Uncommenting:', {
+        commentStart: commentStartPos,
+        commentEnd: commentEndPos,
+        content: commentContent
+    });
     
     return beforeComment + commentContent.trim() + afterComment;
 }

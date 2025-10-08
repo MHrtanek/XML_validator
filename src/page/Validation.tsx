@@ -7,7 +7,7 @@ import ValidationResults from "../components/ValidationResults";
 import ErrorContextMenu from "../components/ErrorContextMenu";
 import { useRef, useState } from 'react';
 import { extractElementName, findElementInXsd } from '../utils/xsdNavigation';
-import { commentOutElement } from '../utils/xmlCommentUtils';
+import { commentOutElement, uncommentElement, isElementCommented } from '../utils/xmlCommentUtils';
 import { ValidationError } from '../types/validation';
 
 const Validation: React.FC = () => {
@@ -79,12 +79,28 @@ const Validation: React.FC = () => {
     const handleCommentElement = () => {
         if (!contextMenu || !contextMenu.error.line) return;
         
-        const commented = commentOutElement(state.xml, contextMenu.error.line);
-        if (commented) {
-            handleEditorChange(commented);
-            console.log('Element commented out on line', contextMenu.error.line);
+        const lineNumber = contextMenu.error.line;
+        const isCommented = isElementCommented(state.xml, lineNumber);
+        
+        let result: string | null;
+        if (isCommented) {
+            // Odkomentuj
+            result = uncommentElement(state.xml, lineNumber);
+            if (result) {
+                handleEditorChange(result);
+                console.log('Element uncommented on line', lineNumber);
+            } else {
+                console.log('Could not uncomment element on line', lineNumber);
+            }
         } else {
-            console.log('Could not comment out element on line', contextMenu.error.line);
+            // Zakomentuj
+            result = commentOutElement(state.xml, lineNumber);
+            if (result) {
+                handleEditorChange(result);
+                console.log('Element commented out on line', lineNumber);
+            } else {
+                console.log('Could not comment out element on line', lineNumber);
+            }
         }
     };
 
@@ -94,6 +110,7 @@ const Validation: React.FC = () => {
                 <ErrorContextMenu
                     error={contextMenu.error}
                     position={contextMenu.position}
+                    isCommented={isElementCommented(state.xml, contextMenu.error.line || 0)}
                     onClose={() => setContextMenu(null)}
                     onNavigateToXsd={handleNavigateToXsd}
                     onCommentElement={handleCommentElement}

@@ -6,6 +6,7 @@ import { ValidationError } from '../types/validation';
 interface Props {
     error: ValidationError;
     position: { x: number; y: number };
+    isCommented: boolean;
     onClose: () => void;
     onNavigateToXsd: () => void;
     onCommentElement: () => void;
@@ -14,6 +15,7 @@ interface Props {
 const ErrorContextMenu: React.FC<Props> = ({
     error,
     position,
+    isCommented,
     onClose,
     onNavigateToXsd,
     onCommentElement
@@ -68,8 +70,8 @@ const ErrorContextMenu: React.FC<Props> = ({
                     className="context-menu-item"
                     onClick={() => handleMenuClick(onCommentElement)}
                 >
-                    <span className="menu-icon">💬</span>
-                    <span>Comment out element</span>
+                    <span className="menu-icon">{isCommented ? '✏️' : '💬'}</span>
+                    <span>{isCommented ? 'Uncomment element' : 'Comment out element'}</span>
                 </button>
                 <button 
                     className="context-menu-item"
