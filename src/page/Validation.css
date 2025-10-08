@@ -191,5 +191,14 @@
     border-left: 4px solid #dc3545;
 }
 
+/* Zvýraznenie riadku pri navigácii v XSD */
+.highlighted-line {
+    background-color: rgba(255, 215, 0, 0.25) !important;
+}
+
+.highlighted-line-glyph {
+    background-color: rgba(255, 215, 0, 0.5);
+}
+
 
 

@@ -83,9 +83,27 @@ const Validation: React.FC = () => {
         
         const lineNumber = findElementInXsd(state.xsd, elementName);
         if (lineNumber && xsdEditorRef.current) {
-            xsdEditorRef.current.revealLineInCenter(lineNumber);
-            xsdEditorRef.current.setPosition({ lineNumber, column: 1 });
-            xsdEditorRef.current.focus();
+            const editor = xsdEditorRef.current;
+            
+            // Naviguj na riadok
+            editor.revealLineInCenter(lineNumber);
+            editor.setPosition({ lineNumber, column: 1 });
+            editor.focus();
+            
+            // Zvýrazni riadok natrvalo
+            import('monaco-editor').then(monaco => {
+                editor.deltaDecorations([], [
+                    {
+                        range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+                        options: {
+                            isWholeLine: true,
+                            className: 'highlighted-line',
+                            glyphMarginClassName: 'highlighted-line-glyph'
+                        }
+                    }
+                ]);
+            });
+            
             console.log('Navigated to line', lineNumber, 'in XSD');
         } else {
             console.log('Element not found in XSD:', elementName);
