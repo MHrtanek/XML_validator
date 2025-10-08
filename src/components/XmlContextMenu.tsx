@@ -1,20 +1,21 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import './ErrorContextMenu.css';
-import { ValidationError } from '../types/validation';
+import './ErrorContextMenu.css'; // Použijeme rovnaký styling
 
 interface Props {
-    error: ValidationError;
     position: { x: number; y: number };
+    lineNumber: number;
+    isCommented: boolean;
     onClose: () => void;
-    onNavigateToXsd: () => void;
+    onCommentElement: () => void;
 }
 
-const ErrorContextMenu: React.FC<Props> = ({
-    error,
+const XmlContextMenu: React.FC<Props> = ({
     position,
+    lineNumber,
+    isCommented,
     onClose,
-    onNavigateToXsd
+    onCommentElement
 }) => {
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -59,23 +60,22 @@ const ErrorContextMenu: React.FC<Props> = ({
             }}
         >
             <div className="context-menu-header">
-                Line {error.line}
+                Line {lineNumber}
             </div>
             <div className="context-menu-items">
                 <button 
                     className="context-menu-item"
-                    onClick={() => handleMenuClick(onNavigateToXsd)}
+                    onClick={() => handleMenuClick(onCommentElement)}
                 >
-                    <span className="menu-icon">🔍</span>
-                    <span>Find in XSD Schema</span>
+                    <span className="menu-icon">{isCommented ? '✏️' : '💬'}</span>
+                    <span>{isCommented ? 'Uncomment element' : 'Comment out element'}</span>
                 </button>
             </div>
         </div>
     );
 
-    // Renderujeme pomocou portálu priamo do document.body aby sme obišli overflow: hidden
     return createPortal(menuContent, document.body);
 };
 
-export default ErrorContextMenu;
+export default XmlContextMenu;
 

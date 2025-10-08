@@ -5,6 +5,7 @@ import { editorOptions } from '../config/editorConfig';
 import MonacoEditorWithValidation, { MonacoEditorRef } from "../components/MonacoEditorWithValidation";
 import ValidationResults from "../components/ValidationResults";
 import ErrorContextMenu from "../components/ErrorContextMenu";
+import XmlContextMenu from "../components/XmlContextMenu";
 import { useRef, useState } from 'react';
 import { extractElementName, findElementInXsd } from '../utils/xsdNavigation';
 import { commentOutElement, uncommentElement, isElementCommented } from '../utils/xmlCommentUtils';
@@ -13,8 +14,13 @@ import { ValidationError } from '../types/validation';
 const Validation: React.FC = () => {
     const xmlEditorRef = useRef<MonacoEditorRef>(null);
     const xsdEditorRef = useRef<any>(null);
-    const [contextMenu, setContextMenu] = useState<{
+    const [errorContextMenu, setErrorContextMenu] = useState<{
         error: ValidationError;
+        position: { x: number; y: number };
+    } | null>(null);
+    
+    const [xmlContextMenu, setXmlContextMenu] = useState<{
+        lineNumber: number;
         position: { x: number; y: number };
     } | null>(null);
     
@@ -45,7 +51,7 @@ const Validation: React.FC = () => {
     };
 
     const handleErrorGlyphClick = (error: ValidationError, event: MouseEvent) => {
-        setContextMenu({
+        setErrorContextMenu({
             error,
             position: {
                 x: event.clientX,
@@ -54,12 +60,22 @@ const Validation: React.FC = () => {
         });
     };
 
+    const handleXmlContextMenu = (lineNumber: number, event: MouseEvent) => {
+        setXmlContextMenu({
+            lineNumber,
+            position: {
+                x: event.clientX,
+                y: event.clientY
+            }
+        });
+    };
+
     const handleNavigateToXsd = () => {
-        if (!contextMenu || !contextMenu.error.message || !state.xsd) return;
+        if (!errorContextMenu || !errorContextMenu.error.message || !state.xsd) return;
         
-        const elementName = extractElementName(contextMenu.error.message);
+        const elementName = extractElementName(errorContextMenu.error.message);
         if (!elementName) {
-            console.log('Could not extract element name from error:', contextMenu.error.message);
+            console.log('Could not extract element name from error:', errorContextMenu.error.message);
             return;
         }
         
@@ -77,14 +93,13 @@ const Validation: React.FC = () => {
     };
 
     const handleCommentElement = () => {
-        if (!contextMenu || !contextMenu.error.line) return;
+        if (!xmlContextMenu) return;
         
-        const lineNumber = contextMenu.error.line;
+        const lineNumber = xmlContextMenu.lineNumber;
         const isCommented = isElementCommented(state.xml, lineNumber);
         
         let result: string | null;
         if (isCommented) {
-            // Odkomentuj
             result = uncommentElement(state.xml, lineNumber);
             if (result) {
                 handleEditorChange(result);
@@ -93,7 +108,6 @@ const Validation: React.FC = () => {
                 console.log('Could not uncomment element on line', lineNumber);
             }
         } else {
-            // Zakomentuj
             result = commentOutElement(state.xml, lineNumber);
             if (result) {
                 handleEditorChange(result);
@@ -106,13 +120,21 @@ const Validation: React.FC = () => {
 
     return (
         <div className="validation-container">
-            {contextMenu && (
+            {errorContextMenu && (
                 <ErrorContextMenu
-                    error={contextMenu.error}
-                    position={contextMenu.position}
-                    isCommented={isElementCommented(state.xml, contextMenu.error.line || 0)}
-                    onClose={() => setContextMenu(null)}
+                    error={errorContextMenu.error}
+                    position={errorContextMenu.position}
+                    onClose={() => setErrorContextMenu(null)}
                     onNavigateToXsd={handleNavigateToXsd}
+                />
+            )}
+            
+            {xmlContextMenu && (
+                <XmlContextMenu
+                    lineNumber={xmlContextMenu.lineNumber}
+                    position={xmlContextMenu.position}
+                    isCommented={isElementCommented(state.xml, xmlContextMenu.lineNumber)}
+                    onClose={() => setXmlContextMenu(null)}
                     onCommentElement={handleCommentElement}
                 />
             )}
@@ -188,6 +210,7 @@ const Validation: React.FC = () => {
                             readOnly={false}
                             theme="vs-dark"
                             onErrorGlyphClick={handleErrorGlyphClick}
+                            onContextMenu={handleXmlContextMenu}
                         />
                     </div>
                 </div>

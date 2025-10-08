@@ -12,6 +12,7 @@ interface Props {
     height?: string | number;
     theme?: string;
     onErrorGlyphClick?: (error: ValidationError, event: MouseEvent) => void;
+    onContextMenu?: (lineNumber: number, event: MouseEvent) => void;
 }
 
 export interface MonacoEditorRef {
@@ -26,19 +27,22 @@ const MonacoEditorWithValidation = forwardRef<MonacoEditorRef, Props>(({
                                                        readOnly = false,
                                                        height = "100%",
                                                        theme = "vs-dark",
-                                                       onErrorGlyphClick
+                                                       onErrorGlyphClick,
+                                                       onContextMenu
                                                    }, ref) => {
     const editorRef = useRef<any>(null);
     const decorationsRef = useRef<string[]>([]);
     const monacoRef = useRef<any>(null);
     const errorsRef = useRef<ValidationError[]>(errors);
     const onErrorGlyphClickRef = useRef(onErrorGlyphClick);
+    const onContextMenuRef = useRef(onContextMenu);
 
     // Aktualizuj refs pri zmene
     useEffect(() => {
         errorsRef.current = errors;
         onErrorGlyphClickRef.current = onErrorGlyphClick;
-    }, [errors, onErrorGlyphClick]);
+        onContextMenuRef.current = onContextMenu;
+    }, [errors, onErrorGlyphClick, onContextMenu]);
 
     useImperativeHandle(ref, () => ({
         goToLine: (line: number) => {
@@ -55,7 +59,7 @@ const MonacoEditorWithValidation = forwardRef<MonacoEditorRef, Props>(({
         monacoRef.current = monaco;
         updateDecorations(editor, monaco, errors);
         
-        // Pridáme click handler pre error glyph - používame ref aby sme mali vždy aktuálne errors
+        // Pridáme click handler pre error glyph
         editor.onMouseDown((e: any) => {
             if (e.target.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
                 const lineNumber = e.target.position?.lineNumber;
@@ -63,7 +67,6 @@ const MonacoEditorWithValidation = forwardRef<MonacoEditorRef, Props>(({
                     const currentErrors = errorsRef.current;
                     const error = currentErrors.find(err => err.line === lineNumber);
                     if (error && onErrorGlyphClickRef.current) {
-                        // Získame browser event z Monaco eventu
                         const mouseEvent = e.event?.browserEvent || new MouseEvent('click', {
                             clientX: e.event?.posx || 100,
                             clientY: e.event?.posy || 100,
@@ -74,6 +77,24 @@ const MonacoEditorWithValidation = forwardRef<MonacoEditorRef, Props>(({
                         onErrorGlyphClickRef.current(error, mouseEvent);
                     }
                 }
+            }
+        });
+        
+        // Pridáme handler pre pravé tlačidlo myši (context menu)
+        editor.onContextMenu((e: any) => {
+            if (onContextMenuRef.current && e.target.position) {
+                const lineNumber = e.target.position.lineNumber;
+                const mouseEvent = e.event?.browserEvent || new MouseEvent('contextmenu', {
+                    clientX: e.event?.posx || 100,
+                    clientY: e.event?.posy || 100,
+                    bubbles: true,
+                    cancelable: true
+                });
+                
+                // Prevent default context menu
+                e.event?.preventDefault();
+                
+                onContextMenuRef.current(lineNumber, mouseEvent);
             }
         });
     };
@@ -128,7 +149,8 @@ const MonacoEditorWithValidation = forwardRef<MonacoEditorRef, Props>(({
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
                 automaticLayout: true,
-                readOnly: readOnly
+                readOnly: readOnly,
+                contextmenu: false // Zakážeme default context menu
             }}
         />
     );
