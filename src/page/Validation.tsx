@@ -9,6 +9,8 @@ import XmlContextMenu from "../components/XmlContextMenu";
 import { useRef, useState } from 'react';
 import { extractElementName, findElementInXsd } from '../utils/xsdNavigation';
 import { commentOutElement, uncommentElement, isElementCommented } from '../utils/xmlCommentUtils';
+import { removeElement, PossibleFix } from '../utils/xmlFixUtils';
+import { formatXml } from '../utils/formatXml';
 import { ValidationError } from '../types/validation';
 
 const Validation: React.FC = () => {
@@ -36,8 +38,6 @@ const Validation: React.FC = () => {
         handleXsdChange,
         handleFormatXml,
         handleFormatXsd,
-        loadSampleXml,
-        loadSampleXsd,
         error
     } = useValidation();
 
@@ -136,6 +136,36 @@ const Validation: React.FC = () => {
         }
     };
 
+    const handleApplyFix = (fix: PossibleFix) => {
+        if (!errorContextMenu || !errorContextMenu.error.line) return;
+        
+        const lineNumber = errorContextMenu.error.line;
+        let result: string | null = null;
+        
+        switch (fix.action) {
+            case 'remove':
+                result = removeElement(state.xml, lineNumber);
+                if (result) {
+                    // Po odstránení elementu automaticky formatujeme
+                    const formatted = formatXml(result);
+                    handleEditorChange(formatted);
+                    console.log('Element removed on line', lineNumber);
+                } else {
+                    console.log('Could not remove element on line', lineNumber);
+                }
+                break;
+            case 'comment':
+                result = commentOutElement(state.xml, lineNumber);
+                if (result) {
+                    handleEditorChange(result);
+                    console.log('Element commented on line', lineNumber);
+                } else {
+                    console.log('Could not comment element on line', lineNumber);
+                }
+                break;
+        }
+    };
+
     return (
         <div className="validation-container">
             {errorContextMenu && (
@@ -144,6 +174,7 @@ const Validation: React.FC = () => {
                     position={errorContextMenu.position}
                     onClose={() => setErrorContextMenu(null)}
                     onNavigateToXsd={handleNavigateToXsd}
+                    onApplyFix={handleApplyFix}
                 />
             )}
             
@@ -190,7 +221,6 @@ const Validation: React.FC = () => {
                         <div className="panel-btns">
                             <button onClick={() => importFile('left')} className="panel-btn panel-btn-primary">Import File</button>
                             <button onClick={handleFormatXsd} className="panel-btn panel-btn-secondary">Format</button>
-                            <button onClick={loadSampleXsd} className="panel-btn panel-btn-secondary">Load Sample</button>
                         </div>
                     </div>
                     <div className="editor-wrapper">
@@ -214,7 +244,6 @@ const Validation: React.FC = () => {
                         <div className="panel-btns">
                             <button onClick={() => importFile('right')} className="panel-btn panel-btn-primary">Import File</button>
                             <button onClick={handleFormatXml} className="panel-btn panel-btn-secondary">Format</button>
-                            <button onClick={loadSampleXml} className="panel-btn panel-btn-secondary">Load Sample</button>
                         </div>
                     </div>
                     <div className="editor-wrapper">

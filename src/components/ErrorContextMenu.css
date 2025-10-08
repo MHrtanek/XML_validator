@@ -52,3 +52,22 @@
     text-align: center;
 }
 
+.context-menu-divider {
+    height: 1px;
+    background: #454545;
+    margin: 4px 0;
+}
+
+.context-menu-section-label {
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.context-menu-fix {
+    color: #4ec9b0;
+}
+

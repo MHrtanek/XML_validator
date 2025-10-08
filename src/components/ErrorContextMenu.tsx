@@ -2,19 +2,22 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import './ErrorContextMenu.css';
 import { ValidationError } from '../types/validation';
+import { getPossibleFixes, PossibleFix } from '../utils/xmlFixUtils';
 
 interface Props {
     error: ValidationError;
     position: { x: number; y: number };
     onClose: () => void;
     onNavigateToXsd: () => void;
+    onApplyFix: (fix: PossibleFix) => void;
 }
 
 const ErrorContextMenu: React.FC<Props> = ({
     error,
     position,
     onClose,
-    onNavigateToXsd
+    onNavigateToXsd,
+    onApplyFix
 }) => {
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -49,6 +52,8 @@ const ErrorContextMenu: React.FC<Props> = ({
         onClose();
     };
 
+    const possibleFixes = getPossibleFixes(error.message || '');
+
     const menuContent = (
         <div 
             ref={menuRef}
@@ -70,6 +75,27 @@ const ErrorContextMenu: React.FC<Props> = ({
                     <span>Find in XSD Schema</span>
                 </button>
             </div>
+            
+            {possibleFixes.length > 0 && (
+                <>
+                    <div className="context-menu-divider"></div>
+                    <div className="context-menu-section-label">Possible fixes</div>
+                    <div className="context-menu-items">
+                        {possibleFixes.map((fix, idx) => (
+                            <button 
+                                key={idx}
+                                className="context-menu-item context-menu-fix"
+                                onClick={() => handleMenuClick(() => onApplyFix(fix))}
+                            >
+                                <span className="menu-icon">
+                                    {fix.action === 'remove' ? '🗑️' : '🔧'}
+                                </span>
+                                <span>{fix.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 

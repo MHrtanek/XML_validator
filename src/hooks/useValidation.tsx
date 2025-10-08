@@ -4,7 +4,6 @@ import { useFileOperations } from './useFileOperations';
 import { useValidationLogic } from './useValidationLogic';
 import { DEFAULT_FILE_NAMES } from '../config/editorConfig';
 import { formatXml } from '../utils/formatXml';
-import { SAMPLE_XML, SAMPLE_XSD } from '../constants/samples';
 import { getQuickFixForMessage } from '../utils/quickFixUtils';
 
 export const useValidation = () => {
@@ -23,10 +22,13 @@ export const useValidation = () => {
 
     const loadFileContent = useCallback((event: React.ChangeEvent<HTMLInputElement>, type: FileType) => {
         handleFileChange(event, (content: string, fileType: FileType) => {
+            // Automaticky formatujeme obsah po načítaní
+            const formatted = formatXml(content);
+            
             if (fileType === 'xsd') {
-                updateState({ xsd: content });
+                updateState({ xsd: formatted });
             } else {
-                updateState({ xml: content });
+                updateState({ xml: formatted });
             }
         }, type);
     }, [handleFileChange, updateState]);
@@ -65,14 +67,6 @@ export const useValidation = () => {
         updateState({ xsd: formatted });
     }, [state.xsd, updateState]);
 
-    const loadSampleXml = useCallback(() => {
-        updateState({ xml: SAMPLE_XML });
-    }, [updateState]);
-
-    const loadSampleXsd = useCallback(() => {
-        updateState({ xsd: SAMPLE_XSD });
-    }, [updateState]);
-
     const applyQuickFix = useCallback((message: string) => {
         const fix = getQuickFixForMessage(message, state.xml);
         if (!fix) return;
@@ -92,8 +86,6 @@ export const useValidation = () => {
         handleXsdChange,
         handleFormatXml,
         handleFormatXsd,
-        loadSampleXml,
-        loadSampleXsd,
         applyQuickFix,
         error
     };
