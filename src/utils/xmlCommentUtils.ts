@@ -17,20 +17,23 @@ export function findElementBounds(xmlContent: string, lineNumber: number): { sta
         lineStartPos += lines[i].length + 1; // +1 for newline
     }
     
-    // Skontrolujeme či je to CLOSING TAG
-    const closingTagMatch = line.match(/<\/(\w+[\w:.-]*)\s*>/);
-    if (closingTagMatch) {
-        const tagName = closingTagMatch[1];
-        return findElementBoundsByClosingTag(xmlContent, lineNumber, tagName, lineStartPos);
-    }
-    
-    // Skúsime nájsť opening tag na tomto riadku
+    // NAJPRV skúsime nájsť opening tag
     const openTagMatch = line.match(/<(\w+[\w:.-]*)/);
     if (!openTagMatch) {
         return null;
     }
     
     const tagName = openTagMatch[1];
+    
+    // Skontrolujeme či je riadok len closing tag (bez opening tagu)
+    const hasOpeningTag = line.includes('<' + tagName);
+    const closingTagMatch = line.match(/<\/(\w+[\w:.-]*)\s*>/);
+    
+    if (closingTagMatch && !hasOpeningTag) {
+        // Je to len closing tag, použijeme špeciálnu funkciu
+        return findElementBoundsByClosingTag(xmlContent, lineNumber, closingTagMatch[1], lineStartPos);
+    }
+    
     const tagStartInLine = line.indexOf('<' + tagName);
     const elementStart = lineStartPos + tagStartInLine;
     
@@ -119,7 +122,6 @@ function findElementBoundsByClosingTag(
 export function commentOutElement(xmlContent: string, lineNumber: number): string | null {
     const bounds = findElementBounds(xmlContent, lineNumber);
     if (!bounds) {
-        console.log('Could not find element bounds');
         return null;
     }
     
@@ -192,12 +194,10 @@ export function uncommentElement(xmlContent: string, lineNumber: number): string
     const lineEndPos = lineStartPos + lines[lineIndex].length;
     
     // Hľadáme komentár ktorý obsahuje tento riadok
-    // Môže začínať pred týmto riadkom alebo na ňom
     const beforeAndIncludingLine = xmlContent.substring(0, lineEndPos);
     const commentStartPos = beforeAndIncludingLine.lastIndexOf('<!--');
     
     if (commentStartPos === -1) {
-        console.log('No comment start found');
         return null;
     }
     
@@ -206,7 +206,6 @@ export function uncommentElement(xmlContent: string, lineNumber: number): string
     const commentEndIndex = afterCommentStart.indexOf('-->');
     
     if (commentEndIndex === -1) {
-        console.log('No comment end found');
         return null;
     }
     
@@ -216,12 +215,6 @@ export function uncommentElement(xmlContent: string, lineNumber: number): string
     const beforeComment = xmlContent.substring(0, commentStartPos);
     const commentContent = xmlContent.substring(commentStartPos + 4, commentStartPos + commentEndIndex); // Remove '<!--' and '-->'
     const afterComment = xmlContent.substring(commentEndPos);
-    
-    console.log('Uncommenting:', {
-        commentStart: commentStartPos,
-        commentEnd: commentEndPos,
-        content: commentContent
-    });
     
     return beforeComment + commentContent.trim() + afterComment;
 }

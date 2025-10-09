@@ -21,6 +21,7 @@ const Validation: React.FC = () => {
     const xsdEditorRef = useRef<any>(null);
     const xsdContentRef = useRef<string>('');
     const xmlContentRef = useRef<string>('');
+    const xsdDecorationsRef = useRef<string[]>([]);
     
     const [errorContextMenu, setErrorContextMenu] = useState<{
         error: ValidationError;
@@ -66,12 +67,10 @@ const Validation: React.FC = () => {
     };
 
     const handleXsdEditorMount = (editor: any) => {
-        console.log('XSD Editor mounted');
         xsdEditorRef.current = editor;
         
         // Pridáme handler pre pravé tlačidlo myši v XSD editore
-        const disposable = editor.onContextMenu((e: any) => {
-            console.log('XSD onContextMenu fired!', e);
+        editor.onContextMenu((e: any) => {
             if (e.target.position) {
                 const lineNumber = e.target.position.lineNumber;
                 const column = e.target.position.column;
@@ -82,14 +81,10 @@ const Validation: React.FC = () => {
                     cancelable: true
                 });
                 
-                // Prevent default context menu
                 e.event?.preventDefault();
-                
                 handleXsdContextMenuClick(lineNumber, column, mouseEvent);
             }
         });
-        
-        console.log('XSD context menu handler registered:', disposable);
     };
 
     const handleErrorGlyphClick = (error: ValidationError, event: MouseEvent) => {
@@ -104,7 +99,6 @@ const Validation: React.FC = () => {
         }
         
         let xsdMatches = findAllElementsInXsd(xsdContentRef.current, elementName);
-        console.log('Found', xsdMatches.length, 'total matches for element:', elementName);
         
         // Použijeme novú context-aware funkciu
         const contextLine = findElementWithXmlContext(
@@ -115,8 +109,6 @@ const Validation: React.FC = () => {
         );
         
         if (contextLine) {
-            console.log('Found element using XML context at line:', contextLine);
-            
             // Preusporiadame matches - context-aware match bude prvý
             xsdMatches = xsdMatches.filter(m => m.line !== contextLine);
             
@@ -133,8 +125,6 @@ const Validation: React.FC = () => {
             
             xsdMatches.unshift({ line: contextLine, context: contextName });
         }
-        
-        console.log('Final matches:', xsdMatches);
         
         setErrorContextMenu({
             error,
@@ -157,28 +147,17 @@ const Validation: React.FC = () => {
     };
 
     const handleXsdContextMenuClick = (lineNumber: number, column: number, event: MouseEvent) => {
-        console.log('XSD context menu clicked at line:', lineNumber, 'column:', column);
-        
-        // Získame obsah riadku a skúsime extrahovať type - POUŽÍVAME REF!
         const xsdContent = xsdContentRef.current;
-        console.log('XSD content length:', xsdContent.length);
-        
         const lines = xsdContent.split('\n');
-        console.log('Total lines:', lines.length);
         
         if (lineNumber < 1 || lineNumber > lines.length) {
-            console.log('Invalid line number:', lineNumber, 'total lines:', lines.length);
             return;
         }
         
         const line = lines[lineNumber - 1];
-        console.log('Line content:', line);
-        
         const typeName = extractTypeAtPosition(line, column);
-        console.log('Extracted type name:', typeName);
         
         if (typeName) {
-            console.log('Setting XSD context menu with type:', typeName);
             setXsdContextMenu({
                 lineNumber,
                 column,
@@ -188,8 +167,6 @@ const Validation: React.FC = () => {
                     y: event.clientY
                 }
             });
-        } else {
-            console.log('No type found at this position');
         }
     };
 
@@ -204,9 +181,9 @@ const Validation: React.FC = () => {
             editor.setPosition({ lineNumber, column: 1 });
             editor.focus();
             
-            // Zvýrazni riadok natrvalo
+            // Zvýrazni riadok natrvalo (odstránime predchádzajúce)
             import('monaco-editor').then(monaco => {
-                editor.deltaDecorations([], [
+                const newDecorations = editor.deltaDecorations(xsdDecorationsRef.current, [
                     {
                         range: new monaco.Range(lineNumber, 1, lineNumber, 1),
                         options: {
@@ -216,11 +193,9 @@ const Validation: React.FC = () => {
                         }
                     }
                 ]);
+                xsdDecorationsRef.current = newDecorations;
             });
             
-            console.log('Navigated to type definition:', xsdContextMenu.typeName, 'at line', lineNumber);
-        } else {
-            console.log('Type definition not found:', xsdContextMenu.typeName);
         }
     };
 
@@ -251,9 +226,9 @@ const Validation: React.FC = () => {
             editor.setPosition({ lineNumber: targetLine, column: 1 });
             editor.focus();
             
-            // Zvýrazni riadok natrvalo
+            // Zvýrazni riadok natrvalo (odstránime predchádzajúce)
             import('monaco-editor').then(monaco => {
-                editor.deltaDecorations([], [
+                const newDecorations = editor.deltaDecorations(xsdDecorationsRef.current, [
                     {
                         range: new monaco.Range(targetLine!, 1, targetLine!, 1),
                         options: {
@@ -263,11 +238,9 @@ const Validation: React.FC = () => {
                         }
                     }
                 ]);
+                xsdDecorationsRef.current = newDecorations;
             });
             
-            console.log('Navigated to line', targetLine, 'in XSD');
-        } else {
-            console.log('Could not navigate to XSD');
         }
     };
 
@@ -282,17 +255,11 @@ const Validation: React.FC = () => {
             result = uncommentElement(state.xml, lineNumber);
             if (result) {
                 handleEditorChange(result);
-                console.log('Element uncommented on line', lineNumber);
-            } else {
-                console.log('Could not uncomment element on line', lineNumber);
             }
         } else {
             result = commentOutElement(state.xml, lineNumber);
             if (result) {
                 handleEditorChange(result);
-                console.log('Element commented out on line', lineNumber);
-            } else {
-                console.log('Could not comment out element on line', lineNumber);
             }
         }
     };
@@ -307,21 +274,14 @@ const Validation: React.FC = () => {
             case 'remove':
                 result = removeElement(state.xml, lineNumber);
                 if (result) {
-                    // Po odstránení elementu automaticky formatujeme
                     const formatted = formatXml(result);
                     handleEditorChange(formatted);
-                    console.log('Element removed on line', lineNumber);
-                } else {
-                    console.log('Could not remove element on line', lineNumber);
                 }
                 break;
             case 'comment':
                 result = commentOutElement(state.xml, lineNumber);
                 if (result) {
                     handleEditorChange(result);
-                    console.log('Element commented on line', lineNumber);
-                } else {
-                    console.log('Could not comment element on line', lineNumber);
                 }
                 break;
         }
