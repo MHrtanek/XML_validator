@@ -10,7 +10,7 @@ import XmlContextMenu from "../components/XmlContextMenu";
 import XsdContextMenu from "../components/XsdContextMenu";
 import { useRef, useState, useEffect } from 'react';
 import { extractElementName, findElementInXsd, findAllElementsInXsd } from '../utils/xsdNavigation';
-import { findParentElementInXml, findElementInTypeContext, findElementWithXmlContext } from '../utils/xmlContextNavigation';
+import { findElementWithXmlContext } from '../utils/xmlContextNavigation';
 import { extractTypeAtPosition, findTypeDefinitionInXsd } from '../utils/xsdTypeNavigation';
 import { commentOutElement, uncommentElement, isElementCommented } from '../utils/xmlCommentUtils';
 import { removeElement, PossibleFix } from '../utils/xmlFixUtils';
@@ -23,6 +23,8 @@ const Validation: React.FC = () => {
     const xsdContentRef = useRef<string>('');
     const xmlContentRef = useRef<string>('');
     const xsdDecorationsRef = useRef<string[]>([]);
+    const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
+    const isResizingRef = useRef(false);
     
     const [errorContextMenu, setErrorContextMenu] = useState<{
         error: ValidationError;
@@ -66,6 +68,38 @@ const Validation: React.FC = () => {
     const handleLineClick = (lineNumber: number) => {
         xmlEditorRef.current?.goToLine(lineNumber);
     };
+
+    const handleMouseDown = () => {
+        isResizingRef.current = true;
+        document.body.style.cursor = 'col-resize';
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+        if (!isResizingRef.current) return;
+        
+        const containerWidth = window.innerWidth;
+        const newLeftWidth = (e.clientX / containerWidth) * 100;
+        
+        // Limitujeme na 20% - 80%
+        if (newLeftWidth >= 20 && newLeftWidth <= 80) {
+            setLeftPanelWidth(newLeftWidth);
+        }
+    };
+
+    const handleMouseUp = () => {
+        isResizingRef.current = false;
+        document.body.style.cursor = 'default';
+    };
+
+    useEffect(() => {
+        document.addEventListener('mousemove', handleMouseMove as any);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove as any);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, []);
 
     const handleXsdEditorMount = (editor: any) => {
         xsdEditorRef.current = editor;
@@ -351,7 +385,7 @@ const Validation: React.FC = () => {
 
             <div className="editors-grid">
                 {/* ĽAVÝ PANEL - XSD (pôvodný Editor) */}
-                <div className="editor-panel">
+                <div className="editor-panel" style={{ width: `${leftPanelWidth}%` }}>
                     <div className="panel-header panel-header-with-buttons">
                         <h3 id="xsd-editor-label">XSD Schema</h3>
                         <div className="panel-btns">
@@ -373,8 +407,14 @@ const Validation: React.FC = () => {
                     </div>
                 </div>
 
+                {/* RESIZER */}
+                <div 
+                    className="panel-resizer"
+                    onMouseDown={handleMouseDown}
+                ></div>
+
                 {/* PRAVÝ PANEL - XML (NÁŠ NOVÝ KOMPONENT) */}
-                <div className="editor-panel">
+                <div className="editor-panel" style={{ width: `${100 - leftPanelWidth}%` }}>
                     <div className="panel-header panel-header-with-buttons">
                         <h3 id="xml-editor-label">XML Document</h3>
                         <div className="panel-btns">
