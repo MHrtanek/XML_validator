@@ -20,22 +20,18 @@ export function extractElementName(errorMessage: string): string | null {
 }
 
 /**
- * Vyhľadá element v XSD schéme a vráti číslo riadku
+ * Vyhľadá všetky výskyty elementu v XSD schéme
  */
-export function findElementInXsd(xsdContent: string, elementName: string): number | null {
-    if (!xsdContent || !elementName) return null;
+export function findAllElementsInXsd(xsdContent: string, elementName: string): Array<{ line: number; context: string }> {
+    if (!xsdContent || !elementName) return [];
     
     const lines = xsdContent.split('\n');
+    const results: Array<{ line: number; context: string }> = [];
     
-    // Hľadáme rôzne pattern-y definície elementu v XSD:
-    // 1. <xs:element name="ElementName"...>
-    // 2. <xsd:element name="ElementName"...>
-    // 3. <element name="ElementName"...>
     const patterns = [
         new RegExp(`<xs:element\\s+name=["']${elementName}["']`, 'i'),
         new RegExp(`<xsd:element\\s+name=["']${elementName}["']`, 'i'),
         new RegExp(`<element\\s+name=["']${elementName}["']`, 'i'),
-        // Komplexné typy
         new RegExp(`<xs:complexType\\s+name=["']${elementName}["']`, 'i'),
         new RegExp(`<xsd:complexType\\s+name=["']${elementName}["']`, 'i'),
     ];
@@ -44,12 +40,46 @@ export function findElementInXsd(xsdContent: string, elementName: string): numbe
         const line = lines[i];
         for (const pattern of patterns) {
             if (pattern.test(line)) {
-                return i + 1; // Line numbers are 1-based
+                // Hľadáme parent complexType/element pre kontext
+                const context = findParentContext(lines, i);
+                results.push({ 
+                    line: i + 1, 
+                    context: context || 'Root level'
+                });
             }
         }
     }
     
+    return results;
+}
+
+/**
+ * Nájde parent context (complexType name) pre daný riadok
+ */
+function findParentContext(lines: string[], lineIndex: number): string | null {
+    // Ideme hore a hľadáme <xs:complexType name="...">
+    for (let i = lineIndex - 1; i >= 0; i--) {
+        const line = lines[i];
+        const match = line.match(/<xs:complexType\s+name=["']([^"']+)["']/i) ||
+                      line.match(/<xsd:complexType\s+name=["']([^"']+)["']/i);
+        if (match) {
+            return match[1];
+        }
+        
+        // Ak narazíme na zatvárajúci complexType, prestaneme hľadať
+        if (line.includes('</xs:complexType>') || line.includes('</xsd:complexType>')) {
+            break;
+        }
+    }
     return null;
+}
+
+/**
+ * Vyhľadá element v XSD schéme a vráti číslo riadku (prvý výskyt)
+ */
+export function findElementInXsd(xsdContent: string, elementName: string): number | null {
+    const results = findAllElementsInXsd(xsdContent, elementName);
+    return results.length > 0 ? results[0].line : null;
 }
 
 /**
@@ -59,4 +89,5 @@ export function extractNamespace(errorMessage: string): string | null {
     const match = errorMessage.match(/\{([^}]+)\}/);
     return match ? match[1] : null;
 }
+
 

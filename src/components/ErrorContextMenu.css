@@ -71,3 +71,8 @@
     color: #4ec9b0;
 }
 
+.context-menu-submenu {
+    padding-left: 32px;
+    font-size: 12px;
+}
+

@@ -7,14 +7,16 @@ import { getPossibleFixes, PossibleFix } from '../utils/xmlFixUtils';
 interface Props {
     error: ValidationError;
     position: { x: number; y: number };
+    xsdMatches?: Array<{ line: number; context: string }>;
     onClose: () => void;
-    onNavigateToXsd: () => void;
+    onNavigateToXsd: (lineNumber?: number) => void;
     onApplyFix: (fix: PossibleFix) => void;
 }
 
 const ErrorContextMenu: React.FC<Props> = ({
     error,
     position,
+    xsdMatches = [],
     onClose,
     onNavigateToXsd,
     onApplyFix
@@ -67,13 +69,41 @@ const ErrorContextMenu: React.FC<Props> = ({
                 Line {error.line}
             </div>
             <div className="context-menu-items">
-                <button 
-                    className="context-menu-item"
-                    onClick={() => handleMenuClick(onNavigateToXsd)}
-                >
-                    <span className="menu-icon">🔍</span>
-                    <span>Find in XSD Schema</span>
-                </button>
+                {xsdMatches.length === 0 && (
+                    <button 
+                        className="context-menu-item"
+                        onClick={() => handleMenuClick(() => onNavigateToXsd())}
+                    >
+                        <span className="menu-icon">🔍</span>
+                        <span>Find in XSD Schema</span>
+                    </button>
+                )}
+                
+                {xsdMatches.length === 1 && (
+                    <button 
+                        className="context-menu-item"
+                        onClick={() => handleMenuClick(() => onNavigateToXsd(xsdMatches[0].line))}
+                    >
+                        <span className="menu-icon">🔍</span>
+                        <span>Find in XSD: {xsdMatches[0].context}</span>
+                    </button>
+                )}
+                
+                {xsdMatches.length > 1 && (
+                    <>
+                        <div className="context-menu-section-label">Find in XSD Schema</div>
+                        {xsdMatches.map((match, idx) => (
+                            <button 
+                                key={idx}
+                                className="context-menu-item context-menu-submenu"
+                                onClick={() => handleMenuClick(() => onNavigateToXsd(match.line))}
+                            >
+                                <span className="menu-icon">📍</span>
+                                <span>{match.context}</span>
+                            </button>
+                        ))}
+                    </>
+                )}
             </div>
             
             {possibleFixes.length > 0 && (
