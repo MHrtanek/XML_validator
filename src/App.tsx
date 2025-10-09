@@ -1,5 +1,6 @@
 import { Routes, Route, Link } from 'react-router-dom';
 import Validation from "./page/Validation.tsx";
+import Compare from "./page/Compare.tsx";
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -16,9 +17,14 @@ function App() {
                                         Validator
                                     </Link>
                                 </li>
+                                <li>
+                                    <Link to="/compare" className="nav-link">
+                                        Compare
+                                    </Link>
+                                </li>
                             </ul>
                             <div className="Title">
-                                <h1>Validator</h1>
+                                <h1>XML Tools</h1>
                             </div>
                         </nav>
                         <div className={'Tittle'}>
@@ -27,6 +33,7 @@ function App() {
                     </div>
                 } />
                 <Route path="/validation" element={<Validation />} />
+                <Route path="/compare" element={<Compare />} />
             </Routes>
         </ErrorBoundary>
     );
