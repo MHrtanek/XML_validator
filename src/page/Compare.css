@@ -3,6 +3,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
+    background: #1a1a1a;
 }
 
 .compare-container .header {
@@ -13,6 +14,38 @@
     padding: 15px 20px;
     background: #33658A;
     border-bottom: 2px solid #F6AE2D;
+}
+
+.compare-container .header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.compare-container .header-home-link {
+    color: #F6AE2D;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.3rem;
+    transition: color 0.3s ease;
+}
+
+.compare-container .header-home-link:hover {
+    color: #ffc04d;
+}
+
+.compare-container .header-nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+
+.compare-container .header-nav-link:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .compare-container .header h1 {

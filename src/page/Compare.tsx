@@ -1,5 +1,6 @@
 import './Compare.css';
 import { DiffEditor } from '@monaco-editor/react';
+import { Link } from 'react-router-dom';
 import { useRef, useState } from 'react';
 import { formatXml } from '../utils/formatXml';
 
@@ -54,7 +55,11 @@ const Compare: React.FC = () => {
     return (
         <div className="compare-container">
             <div className="header">
-                <h1>XML Compare</h1>
+                <div className="header-left">
+                    <Link to="/" className="header-home-link">XML Tools</Link>
+                    <h1>Compare</h1>
+                    <Link to="/validation" className="header-nav-link">Validator</Link>
+                </div>
                 <div className="panel-btns">
                     <button onClick={() => importFile('left')} className="panel-btn panel-btn-primary">Import Left</button>
                     <button onClick={() => importFile('right')} className="panel-btn panel-btn-primary">Import Right</button>

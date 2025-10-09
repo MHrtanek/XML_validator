@@ -1,5 +1,6 @@
 import './Validation.css';
 import { Editor } from '@monaco-editor/react';
+import { Link } from 'react-router-dom';
 import { useValidation } from '../hooks/useValidation';
 import { editorOptions } from '../config/editorConfig';
 import MonacoEditorWithValidation, { MonacoEditorRef } from "../components/MonacoEditorWithValidation";
@@ -320,13 +321,16 @@ const Validation: React.FC = () => {
                 />
             )}
             
-            {/* Header zostáva rovnaký */}
             <div className="header">
-                <h1>XML/XSD Validator</h1>
+                <div className="header-left">
+                    <Link to="/" className="header-home-link">XML Tools</Link>
+                    <h1>Validator</h1>
+                    <Link to="/compare" className="header-nav-link">Compare</Link>
+                </div>
                 <div className="panel-btns">
                     <button onClick={handleSave} className="panel-btn panel-btn-primary">Save</button>
                     <button onClick={handleValidate} className="panel-btn panel-btn-success">Validate</button>
-                        <button onClick={handleClear} className="panel-btn panel-btn-secondary">Reset</button>
+                    <button onClick={handleClear} className="panel-btn panel-btn-secondary">Reset</button>
                 </div>
             </div>
 

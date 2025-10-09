@@ -7,6 +7,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
+    background: #1a1a1a;
 }
 
 
@@ -20,6 +21,37 @@
         border-bottom: 2px solid #F6AE2D;
     }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-home-link {
+    color: #F6AE2D;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.3rem;
+    transition: color 0.3s ease;
+}
+
+.header-home-link:hover {
+    color: #ffc04d;
+}
+
+.header-nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+
+.header-nav-link:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
 
 .header h1 {
     font-size: 1.8rem;
